@@ -1,0 +1,7 @@
+{
+  "name": "Score Magic Fix",
+  "description": "A sophisticated AI-powered tool to sharpen and enhance blurry sheet music, restoring musical notation and lyrics to crystal-clear quality using Gemini API.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
