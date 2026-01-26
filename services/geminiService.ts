@@ -9,12 +9,13 @@ export class GeminiService {
   async enhanceSheetMusic(base64Image: string): Promise<string> {
     try {
       if (!process.env.API_KEY) {
-        throw new Error("API 키가 설정되지 않았습니다. 설정에서 키를 먼저 선택해 주세요.");
+        throw new Error("연결된 API 키가 없습니다. 설정에서 키를 먼저 연결해 주세요.");
       }
 
-      // 호출 시점에 새 인스턴스 생성 (최신 API 키 반영)
+      // 최신 API 키를 반영하기 위해 호출 시점에 인스턴스 생성
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
+      // Gemini 3 Pro 모델 사용 (고화질 시각 지능 최적화)
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: {
@@ -40,7 +41,7 @@ export class GeminiService {
         config: {
           imageConfig: {
             aspectRatio: "3:4",
-            imageSize: "1K"
+            imageSize: "1K" // 고해상도 출력
           }
         }
       });
@@ -57,23 +58,23 @@ export class GeminiService {
       }
 
       if (!enhancedImageUrl) {
-        throw new Error("이미지 생성에 실패했습니다. 결제가 활성화된 프로젝트의 API 키인지 확인하세요.");
+        throw new Error("이미지 생성에 실패했습니다. 결제가 활성화된 프로젝트의 키인지 확인해 주세요.");
       }
 
       return enhancedImageUrl;
     } catch (error: any) {
       console.error("Enhancement failure:", error);
       
-      // 시스템 지침: Requested entity was not found 에러 시 키 재선택 유도
+      // 구체적인 에러 안내
       if (error.message?.includes("Requested entity was not found")) {
-        throw new Error("연결된 API 프로젝트를 찾을 수 없습니다. 설정에서 다시 연결해 주세요.");
+        throw new Error("API 키가 잘못되었거나 유효하지 않은 프로젝트입니다. 다시 연결해 주세요.");
       }
       
-      if (error.message?.includes("API_KEY") || error.status === 401 || error.status === 403) {
-        throw new Error("API 키 인증에 실패했습니다. 유료 플랜이 활성화된 키인지 확인해 주세요.");
+      if (error.status === 401 || error.status === 403) {
+        throw new Error("API 키 인증 실패: 유료 플랜이 활성화된 프로젝트인지 확인해 주세요.");
       }
 
-      throw new Error(error.message || "악보 처리 중 알 수 없는 오류가 발생했습니다.");
+      throw new Error(error.message || "악보 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 }
