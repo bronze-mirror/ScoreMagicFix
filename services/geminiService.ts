@@ -2,16 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 
 export class GeminiService {
-  private getAiInstance() {
-    // 지침에 따라 매 호출 시점에 인스턴스를 생성하여 최신 API 키 상태를 반영할 수 있게 함
-    return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  }
-
   async enhanceSheetMusic(base64Image: string): Promise<string> {
     try {
-      const ai = this.getAiInstance();
+      // 호출 시점에 새 인스턴스를 생성하여 최신 API 키(process.env.API_KEY)를 사용함
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
           parts: [
             {
@@ -21,9 +18,14 @@ export class GeminiService {
               }
             },
             {
-              text: "You are an expert music engraver. Sharpen and enhance this blurry sheet music. Ensure all musical symbols—notes, stems, flags, beams, accidentals, and staff lines—are crisp, solid black, and perfectly defined on a clean white background. Remove all noise, blur, and yellowing. Output ONLY the resulting high-contrast enhanced image."
+              text: "You are an elite music engraver. Sharpen and enhance this blurry sheet music. Every note, stem, flag, beam, accidental, and staff line must be perfectly rendered in high-contrast solid black on a pure white background. Eliminate all noise, blur, and compression artifacts. Ensure the lyrics are extremely legible. Output ONLY the resulting high-resolution enhanced image."
             }
           ]
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "3:4"
+          }
         }
       });
 
@@ -39,14 +41,15 @@ export class GeminiService {
       }
 
       if (!enhancedImageUrl) {
-        throw new Error("모델이 이미지를 생성하지 못했습니다. 다시 시도해주세요.");
+        throw new Error("이미지 생성에 실패했습니다. API 키의 결제 상태나 권한을 확인해 주세요.");
       }
 
       return enhancedImageUrl;
     } catch (error: any) {
       console.error("Enhancement failed:", error);
       if (error.message?.includes("Requested entity was not found")) {
-        throw new Error("API 키 권한 문제 또는 모델 접근 권한이 없습니다.");
+        // 키 선택이 필요함을 알리는 특수 에러 처리
+        throw new Error("API 키가 유효하지 않거나 프로젝트를 찾을 수 없습니다. 다시 설정해 주세요.");
       }
       throw new Error(error.message || "Gemini API 처리 중 오류가 발생했습니다.");
     }
