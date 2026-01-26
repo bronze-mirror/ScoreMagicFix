@@ -1,43 +1,15 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Header from './components/Header';
-import ApiKeyModal from './components/ApiKeyModal';
 import Dropzone from './components/Dropzone';
 import ResultViewer from './components/ResultViewer';
 import { GeminiService } from './services/geminiService';
-import { StorageKeys } from './types';
 
 const App: React.FC = () => {
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [showKeyModal, setShowKeyModal] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(StorageKeys.API_KEY);
-    if (stored) {
-      try {
-        setApiKey(atob(stored));
-      } catch {
-        setShowKeyModal(true);
-      }
-    } else {
-      setShowKeyModal(true);
-    }
-  }, []);
-
-  const handleKeySuccess = (key: string) => {
-    setApiKey(key);
-    setShowKeyModal(false);
-  };
-
-  const handleResetKey = () => {
-    localStorage.removeItem(StorageKeys.API_KEY);
-    setApiKey(null);
-    setShowKeyModal(true);
-  };
 
   const handleImageSelect = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -48,14 +20,8 @@ const App: React.FC = () => {
       setError(null);
       setIsProcessing(true);
 
-      if (!apiKey) {
-        setShowKeyModal(true);
-        setIsProcessing(false);
-        return;
-      }
-
       try {
-        const service = new GeminiService(apiKey);
+        const service = new GeminiService();
         const result = await service.enhanceSheetMusic(base64);
         setEnhancedImage(result);
       } catch (err: any) {
@@ -65,7 +31,7 @@ const App: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
-  }, [apiKey]);
+  }, []);
 
   const resetAll = () => {
     setOriginalImage(null);
@@ -76,10 +42,9 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter']">
-      <Header onResetKey={handleResetKey} isKeySet={!!apiKey} />
+      <Header />
       
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-12">
-        {/* Hero Section */}
         <div className="text-center mb-16 space-y-4">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
             흐릿한 악보를 <span className="text-indigo-600">마법처럼 선명하게.</span>
@@ -91,7 +56,7 @@ const App: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl flex items-center gap-3 animate-bounce">
+          <div className="mb-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
             <i className="fas fa-exclamation-circle text-xl"></i>
             <p className="font-semibold">{error}</p>
           </div>
@@ -108,9 +73,8 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Feature Highlights */}
         <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm transition-transform hover:-translate-y-1">
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
               <i className="fas fa-feather-pointed text-xl"></i>
             </div>
@@ -120,7 +84,7 @@ const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm transition-transform hover:-translate-y-1">
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
               <i className="fas fa-font text-xl"></i>
             </div>
@@ -130,13 +94,13 @@ const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm transition-transform hover:-translate-y-1">
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-              <i className="fas fa-user-shield text-xl"></i>
+              <i className="fas fa-bolt text-xl"></i>
             </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-3">강력한 개인정보 보호</h4>
+            <h4 className="text-xl font-bold text-gray-900 mb-3">초고속 AI 처리</h4>
             <p className="text-gray-500 text-sm leading-relaxed">
-              사용자의 API 키는 브라우저 내부에 암호화되어 저장되며, 그 어떤 외부 서버로도 전송되지 않습니다.
+              Gemini 2.5 모델을 사용하여 단 몇 초 만에 고화질 악보 이미지를 생성합니다.
             </p>
           </div>
         </section>
@@ -147,8 +111,6 @@ const App: React.FC = () => {
           &copy; 2024 Score Magic Fix. Powered by Google Gemini API.
         </p>
       </footer>
-
-      {showKeyModal && <ApiKeyModal onSuccess={handleKeySuccess} />}
     </div>
   );
 };
