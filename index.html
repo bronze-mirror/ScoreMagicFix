@@ -14,9 +14,18 @@
             background-color: #f8fafc;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
         #root {
             min-height: 100vh;
+        }
+        /* 페이드 인 애니메이션 효과 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 <script type="importmap">
@@ -35,5 +44,13 @@
 <body>
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
+    <script>
+      // 브라우저 호환성 및 Vercel 빈 화면 방지를 위한 기본 에러 핸들링
+      window.addEventListener('error', function(e) {
+        if (e.message.indexOf('importmap') !== -1) {
+          console.error('Import map not supported or failed to load.');
+        }
+      });
+    </script>
 </body>
 </html>

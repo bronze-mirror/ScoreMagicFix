@@ -2,9 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 
 export class GeminiService {
+  /**
+   * 고화질 악보 복원 프로세스
+   * @param base64Image 원본 이미지 데이터
+   */
   async enhanceSheetMusic(base64Image: string): Promise<string> {
     try {
-      // 호출 시점에 새 인스턴스를 생성하여 최신 API 키(process.env.API_KEY)를 사용함
+      // 시스템 지침: API 호출 직전에 인스턴스 생성 (최신 process.env.API_KEY 보장)
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
       
       const response = await ai.models.generateContent({
@@ -18,13 +22,21 @@ export class GeminiService {
               }
             },
             {
-              text: "You are an elite music engraver. Sharpen and enhance this blurry sheet music. Every note, stem, flag, beam, accidental, and staff line must be perfectly rendered in high-contrast solid black on a pure white background. Eliminate all noise, blur, and compression artifacts. Ensure the lyrics are extremely legible. Output ONLY the resulting high-resolution enhanced image."
+              text: `You are a world-class professional music engraver. 
+              Your task is to 'Magic Fix' this blurry or low-quality sheet music.
+              1. Sharpen every musical notation: notes, stems, flags, beams, and staff lines.
+              2. Render all symbols in high-contrast solid black (#000000).
+              3. Ensure the background is pure, noise-free white (#FFFFFF).
+              4. Make lyrics and text markings extremely crisp and legible.
+              5. Remove all compression artifacts, shadows, and yellowing.
+              Output ONLY the resulting high-definition enhanced image data.`
             }
           ]
         },
         config: {
           imageConfig: {
-            aspectRatio: "3:4"
+            aspectRatio: "3:4",
+            imageSize: "1K"
           }
         }
       });
@@ -41,17 +53,16 @@ export class GeminiService {
       }
 
       if (!enhancedImageUrl) {
-        throw new Error("이미지 생성에 실패했습니다. API 키의 결제 상태나 권한을 확인해 주세요.");
+        throw new Error("이미지 생성에 실패했습니다. API 키 권한 또는 프로젝트 설정을 확인하세요.");
       }
 
       return enhancedImageUrl;
     } catch (error: any) {
-      console.error("Enhancement failed:", error);
+      console.error("Enhancement failure:", error);
       if (error.message?.includes("Requested entity was not found")) {
-        // 키 선택이 필요함을 알리는 특수 에러 처리
-        throw new Error("API 키가 유효하지 않거나 프로젝트를 찾을 수 없습니다. 다시 설정해 주세요.");
+        throw new Error("연결된 API 프로젝트를 찾을 수 없습니다. 설정에서 다시 연결해 주세요.");
       }
-      throw new Error(error.message || "Gemini API 처리 중 오류가 발생했습니다.");
+      throw new Error(error.message || "악보 처리 중 알 수 없는 오류가 발생했습니다.");
     }
   }
 }
