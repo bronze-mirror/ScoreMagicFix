@@ -1,9 +1,17 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import Dropzone from './components/Dropzone';
 import ResultViewer from './components/ResultViewer';
 import { GeminiService } from './services/geminiService';
+
+declare global {
+  // Augment the existing AIStudio interface to include the required methods.
+  // This avoids conflicting with the 'aistudio' property declaration on Window.
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+}
 
 const App: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -13,13 +21,15 @@ const App: React.FC = () => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
 
-  // 초기 로드 시 API 키 선택 여부 확인 (빈 화면 방지)
+  // 초기 로드 시 API 키 선택 여부 확인
   useEffect(() => {
     const initConnection = async () => {
       try {
         if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
           const hasKey = await window.aistudio.hasSelectedApiKey();
           setIsConnected(hasKey);
+        } else {
+          console.warn("window.aistudio.hasSelectedApiKey is not available in this context.");
         }
       } catch (err) {
         console.error("Connection check failed", err);
@@ -31,13 +41,20 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenSettings = async () => {
+    console.debug("handleOpenSettings triggered");
     try {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+        // 지침: 호출 후 성공했다고 가정하고 즉시 진행
         await window.aistudio.openSelectKey();
         setIsConnected(true);
         setError(null);
+      } else {
+        const msg = "이 브라우저 환경에서는 AI Studio API 키 선택 도구를 실행할 수 없습니다. 적절한 런타임 환경인지 확인해주세요.";
+        console.error(msg);
+        alert(msg);
       }
     } catch (err) {
+      console.error("Failed to open key selector:", err);
       setError("설정 창을 여는 중 문제가 발생했습니다.");
     }
   };
@@ -61,8 +78,10 @@ const App: React.FC = () => {
         const result = await service.enhanceSheetMusic(base64);
         setEnhancedImage(result);
       } catch (err: any) {
+        console.error("Image processing error:", err);
         setError(err.message);
-        if (err.message.includes("API 키") || err.message.includes("연결")) {
+        // 특정 에러 발생 시 키 다시 선택 유도
+        if (err.message.includes("연결") || err.message.includes("찾을 수 없습니다")) {
           setIsConnected(false);
         }
       } finally {
@@ -104,10 +123,10 @@ const App: React.FC = () => {
               <h2 className="text-3xl font-extrabold text-gray-900">안전한 API 연결 시작</h2>
               <p className="text-gray-500 text-lg leading-relaxed">
                 각 사용자의 개인 API 키를 사용해 악보를 복원합니다. <br/>
-                입력하신 키는 암호화되어 관리되며 외부로 노출되지 않습니다.
+                입력하신 키는 AI Studio 보안 시스템을 통해 암호화되어 관리됩니다.
               </p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-2xl flex items-start gap-4 text-left">
+            <div className="bg-slate-50 p-6 rounded-2xl flex items-start gap-4 text-left border border-slate-100">
               <i className="fas fa-info-circle text-indigo-400 mt-1"></i>
               <div className="text-sm text-slate-600 space-y-1">
                 <p className="font-bold">결제가 활성화된 프로젝트의 키가 필요합니다.</p>
@@ -117,9 +136,9 @@ const App: React.FC = () => {
             </div>
             <button 
               onClick={handleOpenSettings}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-3"
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-3 group"
             >
-              <i className="fas fa-plug-circle-check"></i>
+              <i className="fas fa-plug-circle-check group-hover:rotate-12 transition-transform"></i>
               지금 API 연결하기
             </button>
           </div>
@@ -128,7 +147,7 @@ const App: React.FC = () => {
             <div className="text-center mb-16 space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold mb-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                AI STUDIO 보안 연결됨
+                보안 인증 완료
               </div>
               <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
                 흐릿한 악보를 <span className="text-indigo-600">마법처럼 선명하게.</span>
@@ -144,7 +163,7 @@ const App: React.FC = () => {
                   <i className="fas fa-triangle-exclamation text-xl"></i>
                   <p className="font-semibold">{error}</p>
                 </div>
-                <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+                <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 p-2">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
